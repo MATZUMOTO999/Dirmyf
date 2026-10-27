@@ -3,357 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Extractor de metadatos EXIF y paleta de colores de imágenes">
     <title>IMG Inspector - Extractor de Metadatos</title>
-    <!-- Librería para EXIF -->
+    
+    <!-- Librerías externas -->
     <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
-    <!-- Librería para Colores -->
     <script src="https://cdn.jsdelivr.net/npm/chroma-js@2.4.2/chroma.min.js"></script>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-        }
-        
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        h1 { color: var(--primary); margin-bottom: 2rem; }
-
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            max-width: 1200px;
-            width: 100%;
-        }
-
-        @media (max-width: 768px) {
-            .container { grid-template-columns: 1fr; }
-        }
-
-        .drop-zone {
-            border: 3px dashed #cbd5e1;
-            border-radius: 1rem;
-            padding: 3rem;
-            text-align: center;
-            background: var(--card);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--primary);
-            background: #eff6ff;
-        }
-
-        .preview-section {
-            display: none;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .preview-image {
-            max-width: 100%;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-
-        .info-card {
-            background: var(--card);
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-        }
-
-        .info-card h3 {
-            margin-top: 0;
-            color: var(--primary);
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 0.5rem;
-        }
-
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .data-row:last-child { border-bottom: none; }
-        .label { font-weight: 500; color: #64748b; }
-        .value { font-weight: 600; }
-
-        .palette {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .color-swatch {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-        .color-swatch:hover::after {
-            content: attr(data-color);
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <div class="app-container">
+        <header class="header">
+            <h1> IMG Inspector</h1>
+            <p class="subtitle">Extractor de Metadatos EXIF y Paleta de Colores</p>
+        </header>
 
-    <h1>🔍 IMG Inspector</h1>
+        <div class="container">
+            <!-- Left: Upload -->
+            <div class="upload-section">
+                <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Seleccionar una imagen">
+                    <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="drop-text">Arrastra una imagen aquí</p>
+                    <p class="drop-subtext">o haz clic para subir</p>
+                    <p class="drop-hint">Formatos: JPG, PNG, WEBP (Máx. 10MB)</p>
+                    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" hidden>
+                </div>
 
-    <div class="container">
-        <!-- Left: Upload -->
-        <div class="drop-zone" id="dropZone">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <p style="margin-top: 1rem; color: #64748b;">Arrastra una imagen aquí o haz clic para subir</p>
-            <input type="file" id="fileInput" accept="image/*" hidden>
-        </div>
+                <div class="tip-box">
+                    <span class="tip-icon"></span>
+                    <p><strong>¿Envías la foto desde WhatsApp?</strong></p>
+                    <p style="font-size: 0.85rem; margin-top: 0.25rem;">
+                        Si la envías como "Foto", WhatsApp borra los metadatos. Para conservar los datos EXIF, debes enviarla como
+                        <strong>"Documento"</strong> (📎 Adjuntar &gt; Documento &gt; Elegir foto).
+                    </p>
+                </div>
 
-        <!-- Right: Preview & Data -->
-        <div class="preview-section" id="previewSection">
-            <img id="previewImg" class="preview-image" alt="Preview">
-            <button id="downloadJson" type="button" disabled style="padding: 0.5rem 1rem; background: var(--primary); color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
-                📥 Descargar Metadatos (JSON)
-            </button>
-            
-            <!-- Basic Info -->
-            <div class="info-card">
-                <h3>📄 Información Básica</h3>
-                <div id="basicInfo"></div>
+                <!-- Demo Gallery -->
+                <div class="demo-gallery">
+                    <h3 class="gallery-title"> Sample Database</h3>
+                    <p class="gallery-subtitle">Click to load test images</p>
+
+                    <div class="gallery-grid">
+                        <div class="gallery-item" onclick="App.loadDemoImage('https://i.imgur.com/8Km9tLL.jpg', 'sample_001.jpg')">
+                            <img src="https://i.imgur.com/8Km9tLL.jpg" alt="Sample 1" loading="lazy">
+                            <div class="gallery-overlay">[ ANALYZE ]</div>
+                        </div>
+
+                        <div class="gallery-item" onclick="App.loadDemoImage('https://i.imgur.com/Q73Kv8X.jpg', 'sample_002.jpg')">
+                            <img src="https://i.imgur.com/Q73Kv8X.jpg" alt="Sample 2" loading="lazy">
+                            <div class="gallery-overlay">[ ANALYZE ]</div>
+                        </div>
+
+                        <div class="gallery-item" onclick="App.loadDemoImage('https://i.imgur.com/5Q8K9mP.jpg', 'sample_003.jpg')">
+                            <img src="https://i.imgur.com/5Q8K9mP.jpg" alt="Sample 3" loading="lazy">
+                            <div class="gallery-overlay">[ ANALYZE ]</div>
+                        </div>
+
+                        <div class="gallery-item" onclick="App.loadDemoImage('https://i.imgur.com/3L9vN2K.jpg', 'sample_004.jpg')">
+                            <img src="https://i.imgur.com/3L9vN2K.jpg" alt="Sample 4" loading="lazy">
+                            <div class="gallery-overlay">[ ANALYZE ]</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="security-notice" id="securityNotice" style="display: none;">
+                    <span class="notice-icon">️</span>
+                    <span id="securityMessage"></span>
+                </div>
             </div>
 
-            <!-- EXIF Info -->
-            <div class="info-card">
-                <h3>📷 Metadatos EXIF</h3>
-                <div id="exifInfo"></div>
-            </div>
+            <!-- Right: Preview & Data -->
+            <div class="preview-section" id="previewSection">
+                <div class="image-wrapper">
+                    <img id="previewImg" class="preview-image" alt="Preview">
+                    <div class="image-overlay" id="gpsWarning" style="display: none;">
+                        <span class="warning-icon"></span>
+                        <span>Esta imagen contiene datos GPS</span>
+                    </div>
+                </div>
 
-            <!-- Palette -->
-            <div class="info-card">
-                <h3>🎨 Paleta de Colores</h3>
-                <div class="palette" id="palette"></div>
+                <div class="actions">
+                    <button id="downloadJson" type="button" class="btn btn-primary" disabled>
+                        Descargar JSON
+                    </button>
+                    <button id="downloadTxt" type="button" class="btn btn-secondary" disabled>
+                        Descargar TXT
+                    </button>
+                    <button id="clearData" type="button" class="btn btn-danger">
+                        Limpiar
+                    </button>
+                </div>
+                
+                <!-- Basic Info -->
+                <div class="info-card">
+                    <h3> Información Básica</h3>
+                    <div id="basicInfo" class="data-grid"></div>
+                </div>
+
+                <!-- EXIF Info -->
+                <div class="info-card" id="exifCard" style="display: none;">
+                    <h3> Metadatos EXIF</h3>
+                    <div id="exifInfo" class="data-grid"></div>
+                </div>
+
+                <!-- GPS Info -->
+                <div class="info-card" id="gpsCard" style="display: none;">
+                    <h3> Ubicación GPS</h3>
+                    <div id="gpsInfo" class="data-grid"></div>
+                    <a id="gpsMapLink" href="#" target="_blank" class="map-link" style="display: none;">
+                         Ver en Google Maps
+                    </a>
+                </div>
+
+                <!-- Palette -->
+                <div class="info-card">
+                    <h3> Paleta de Colores</h3>
+                    <div class="palette" id="palette"></div>
+                    <div id="colorCodes" class="color-codes"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const previewSection = document.getElementById('previewSection');
-        const previewImg = document.getElementById('previewImg');
-        const basicInfoDiv = document.getElementById('basicInfo');
-        const exifInfoDiv = document.getElementById('exifInfo');
-        const paletteDiv = document.getElementById('palette');
-        const downloadJsonButton = document.getElementById('downloadJson');
-        let currentExifData = null;
-        let currentFileName = '';
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Procesando imagen...</p>
+    </div>
 
-        // Event Listeners
-        dropZone.addEventListener('click', () => fileInput.click());
-        
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                processImage(file);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) processImage(file);
-        });
-
-        async function processImage(file) {
-            // 1. Mostrar Preview
-            const url = URL.createObjectURL(file);
-            previewImg.src = url;
-            previewSection.style.display = 'flex';
-            currentFileName = file.name;
-            currentExifData = null;
-            downloadJsonButton.disabled = true;
-
-            // 2. Info Básica
-            const img = new Image();
-            img.onload = () => {
-                basicInfoDiv.innerHTML = `
-                    <div class="data-row"><span class="label">Nombre:</span><span class="value">${file.name}</span></div>
-                    <div class="data-row"><span class="label">Tamaño:</span><span class="value">${(file.size / 1024 / 1024).toFixed(2)} MB</span></div>
-                    <div class="data-row"><span class="label">Tipo:</span><span class="value">${file.type}</span></div>
-                    <div class="data-row"><span class="label">Dimensiones:</span><span class="value">${img.width} x ${img.height}px</span></div>
-                    <div class="data-row"><span class="label">Proporción:</span><span class="value">${(img.width / img.height).toFixed(2)}:1</span></div>
-                `;
-                
-                // 3. Extraer Colores
-                extractColors(img);
-            };
-            img.src = url;
-
-            // 4. Extraer EXIF
-            try {
-                // exifr.full() extrae todos los metadatos posibles
-                const exif = await exifr.parse(file);
-                currentExifData = exif || null;
-                if (exif) {
-                    displayExif(exif);
-                } else {
-                    exifInfoDiv.innerHTML = '<p style="color:#64748b">No se encontraron metadatos EXIF.</p>';
-                }
-            } catch (error) {
-                console.error(error);
-                exifInfoDiv.innerHTML = '<p style="color:#64748b">Error al leer EXIF. La imagen podría no tener datos.</p>';
-            } finally {
-                downloadJsonButton.disabled = false;
-            }
-        }
-
-        downloadJsonButton.addEventListener('click', () => {
-            const metadata = {
-                fileName: currentFileName,
-                exif: currentExifData
-            };
-            const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            const baseName = currentFileName.replace(/\.[^.]+$/, '').replace(/[<>:"/\\|?*]/g, '_');
-            link.href = url;
-            link.download = `${baseName || 'metadata'}.json`;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(url), 0);
-        });
-
-        function displayExif(data) {
-            // Mapeo de campos comunes a nombres legibles
-            const fields = [
-                { key: 'Make', label: 'Marca' },
-                { key: 'Model', label: 'Modelo' },
-                { key: 'DateTimeOriginal', label: 'Fecha' },
-                { key: 'ExposureTime', label: 'Velocidad' },
-                { key: 'FNumber', label: 'Apertura' },
-                { key: 'ISO', label: 'ISO' },
-                { key: 'FocalLength', label: 'Lente (mm)' },
-                { key: 'GPSLatitude', label: 'Latitud' },
-                { key: 'GPSLongitude', label: 'Longitud' }
-            ];
-
-            let html = '';
-            fields.forEach(field => {
-                if (data[field.key] !== undefined) {
-                    let value = data[field.key];
-                    
-                    // Formato especial para GPS
-                    if (field.key === 'GPSLatitude' || field.key === 'GPSLongitude') {
-                        // Convertir grados/minutes/seconds a decimal
-                        const decimal = data[field.key][0] + data[field.key][1]/60 + data[field.key][2]/3600;
-                        value = `${decimal.toFixed(6)}°`;
-                    }
-                    // Formato para Fecha
-                    else if (field.key === 'DateTimeOriginal') {
-                        value = new Date(value).toLocaleString();
-                    }
-                    // Formato para Velocidad (fracción)
-                    else if (field.key === 'ExposureTime') {
-                        if (value < 1) {
-                            value = `1/${Math.round(1/value)}s`;
-                        } else {
-                            value = `${value}s`;
-                        }
-                    }
-                    // Formato para Focal Length
-                    else if (field.key === 'FocalLength') {
-                        value = `${value.toFixed(1)}mm`;
-                    }
-
-                    html += `
-                        <div class="data-row">
-                            <span class="label">${field.label}:</span>
-                            <span class="value">${value}</span>
-                        </div>
-                    `;
-                }
-            });
-
-            if (!html) {
-                html = '<p style="color:#64748b">No se encontraron metadatos EXIF relevantes.</p>';
-            }
-            
-            exifInfoDiv.innerHTML = html;
-        }
-
-        function extractColors(imgElement) {
-            // ColorThief necesita una imagen cargada (con src válido)
-            const colorThief = new ColorThief();
-            
-            try {
-                // getPalette devuelve un array de arrays [r, g, b]
-                // El segundo parámetro es la cantidad de colores a extraer
-                const palette = colorThief.getPalette(imgElement, 6);
-                
-                paletteDiv.innerHTML = '';
-                
-                palette.forEach(rgbArray => {
-                    // Convertir array [r,g,b] a string CSS 'rgb(r,g,b)'
-                    const rgbString = `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
-                    
-                    const swatch = document.createElement('div');
-                    swatch.className = 'color-swatch';
-                    swatch.style.backgroundColor = rgbString;
-                    
-                    // Usar Chroma.js para obtener el código HEX para el tooltip
-                    const hex = chroma(rgbString).hex();
-                    swatch.setAttribute('data-color', hex);
-                    
-                    paletteDiv.appendChild(swatch);
-                });
-            } catch (error) {
-                console.error("Error al extraer colores:", error);
-                paletteDiv.innerHTML = '<p style="color:#64748b">No se pudo analizar la paleta.</p>';
-            }
-        }
-
-        
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/validators.js"></script>
+    <script src="js/exifHandler.js"></script>
+    <script src="js/colorHandler.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
